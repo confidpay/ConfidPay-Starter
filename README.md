@@ -6,7 +6,7 @@ ConfidPay lets teams pay salaries, bonuses, and contractors without revealing am
 
 ---
 
-## 🎯 What is ConfidPay?
+## What is ConfidPay?
 
 ConfidPay is a smart contract system that stores encrypted salaries, vesting rules, and payment schedules on-chain. The blockchain never sees actual amounts — only the contract can compute on encrypted data.
 
@@ -25,40 +25,17 @@ ConfidPay uses **Fully Homomorphic Encryption (FHE)** to:
 
 ---
 
-## 🔐 How It Works
+## Deployed Contracts (Arbitrum Sepolia)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         ADMIN (DAO Treasury)                  │
-│  • Creates encrypted payroll for employees                    │
-│  • Sets vesting schedules (linear, cliff)                    │
-│  • Adds and completes milestones                            │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              │ createPayroll(encryptedSalary, ...)
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    CONFIDENTIAL SMART CONTRACT               │
-│                                                              │
-│  • Stores: encryptedSalary, encryptedStartTime               │
-│  • Computes: vestedAmount, claimableAmount                 │
-│  • All math happens on encrypted data                        │
-│  • No one sees actual numbers (except employee)             │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              │ claimPayment()
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                        EMPLOYEE (Team Member)                │
-│  • Can only decrypt their own payroll info                  │
-│  • Claims payments when due                                 │
-│  • No one else knows the amounts                            │
-└─────────────────────────────────────────────────────────────┘
-```
+| Contract | Address |
+|----------|---------|
+| **ConfidPay** | `0x5f5669b3CC1B83b3aA75f598Cb345889231BB224` |
+| **MockConfidentEscrow** | `0x8573cb0699ED9Af67f31c63aE421FDEF5554F5ef` |
+| **MockFHERC20 (USDC)** | `0xeCEFF42D397469E2D052277E241383737a3eDaB1` |
 
 ---
 
-## 📦 Features
+## Features
 
 ### Phase 1: Create Payroll ✅
 - Admin creates private payroll for any employee
@@ -74,15 +51,15 @@ ConfidPay uses **Fully Homomorphic Encryption (FHE)** to:
 - **Time-based payments** - Employees claim when payment is due
 - **Milestones** - Bonus payments for completed tasks
 
-### Phase 3: Frontend & Testnet (Future)
+### Phase 3: Frontend & Testnet ✅
 - React/Next.js frontend
-- Wallet integration (MetaMask, etc.)
-- Deploy to Arbitrum Sepolia testnet
-- Real USDC integration via ReineiraOS
+- Wallet integration (via wagmi)
+- Deployed to Arbitrum Sepolia testnet
+- Mock escrow and USDC for testing
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Contract Structure
 
@@ -92,7 +69,9 @@ contracts/
 ├── interfaces/
 │   └── IFHERC20.sol          # Token interface
 └── mock/
-    └── MockFHERC20.sol        # Mock for testing
+    ├── MockFHERC20.sol        # Mock token
+    ├── MockConfidentEscrow.sol # Mock escrow
+    └── MockInsuranceManager.sol # Mock insurance
 ```
 
 ### Core Components
@@ -102,10 +81,11 @@ contracts/
 | `ConfidPay.sol` | Main payroll logic, encrypted storage |
 | `IFHERC20.sol` | Interface for confidential token transfers |
 | `MockFHERC20.sol` | Mock token for local testing |
+| `MockConfidentEscrow.sol` | Mock escrow for payment flows |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -113,134 +93,94 @@ contracts/
 | Smart Contracts | Solidity 0.8.25 |
 | FHE Library | `@fhenixprotocol/cofhe-contracts` |
 | SDK | `@cofhe/sdk` |
+| Frontend | Next.js + wagmi + viem |
 | Testing | Hardhat + Mocha |
-| Payment Rails | ReineiraOS (future) |
-
-### FHE Type Support
-- `euint128` - Maximum for monetary values (USDC with 6 decimals)
-- `euint64` - For timestamps (covers dates until year 292277026596)
-- `InEuint128/64` - Input types for encrypted parameters
+| Payment Rails | ReineiraOS (mock) |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- pnpm (or npm)
+- Testnet ETH on Arbitrum Sepolia
 
 ### Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/confidpay/ConfidPay-Starter.git
-cd ConfidPay-Starter
+cd ConfidPay-Starter/cofhe-hardhat-starter
 
 # Install dependencies
-pnpm install
+npm install
 
-# Compile contracts
-pnpm compile
+# Install frontend dependencies
+cd frontend && npm install
 ```
 
 ### Run Tests
 
 ```bash
-# Run all tests with mock FHE environment
-pnpm test
-
-# Or with gas reporting
-REPORT_GAS=true pnpm test
+npm test
 ```
 
-### Expected Output
+Expected: **26 passing tests**
 
+### Run Frontend
+
+```bash
+cd frontend
+npm run dev
 ```
-✓ cofhe-hardhat-plugin :: deploy mocks
 
-  ConfidPay
-    Deployment
-      ✔ Should set admin correctly
-      ✔ Should set confidential token correctly
-    Create Payroll
-      ✔ Should create payroll as admin
-      ✔ Should create payroll with Linear vesting
-      ✔ Should create payroll with Cliff vesting
-      ...
-    
-  26 passing (11s)
+Visit `http://localhost:3000` and connect your wallet.
+
+---
+
+## Deployment
+
+### Deploy to Arbitrum Sepolia
+
+```bash
+# Configure .env
+echo "PRIVATE_KEY=your_key" > .env
+echo "ARBITRUM_SEPOLIA_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc" >> .env
+
+# Deploy
+npx hardhat run scripts/deploy.ts --network arb-sepolia
+```
+
+### Update Frontend
+
+After deployment, update `frontend/.env.local`:
+```
+NEXT_PUBLIC_CONFIDPAY_ADDRESS=your_confidpay_address
+NEXT_PUBLIC_ESCROW_ADDRESS=your_escrow_address
+NEXT_PUBLIC_USDC_ADDRESS=your_usdc_address
 ```
 
 ---
 
-## 📖 Usage
+## Frontend Usage
 
-### 1. Create Payroll (Admin)
+### Connect Wallet
+1. Open the app at `http://localhost:3000`
+2. Click "Connect" to connect your wallet (MetaMask or injected)
 
-```typescript
-import { Encryptable } from '@cofhe/sdk';
+### Admin: Create Payroll
+1. Enter employee address
+2. Enter monthly salary (USDC)
+3. Select vesting type (Immediate/Linear/Cliff)
+4. Click "Create Payroll"
 
-// Encrypt salary and interval
-const [encryptedSalary] = await cofheClient
-  .encryptInputs([Encryptable.uint128(100_000_000n)]) // 100 USDC
-  .execute();
-
-const [encryptedInterval] = await cofheClient
-  .encryptInputs([Encryptable.uint64(30n * 24n * 60n * 60n)]) // 30 days
-  .execute();
-
-// Create payroll
-await confidPay.createPayroll(
-  employeeAddress,
-  encryptedSalary,
-  encryptedInterval,
-  vestingType,        // 0=Immediate, 1=Linear, 2=Cliff
-  vestingDuration,    // seconds
-  cliffDuration       // seconds
-);
-```
-
-### 2. View Payroll (Employee)
-
-```typescript
-// Get encrypted payroll info
-const payrollInfo = await confidPay.getMyPayrollInfo();
-
-// Decrypt using SDK
-const decryptedSalary = await cofheClient
-  .decryptForView(payrollInfo.salary, FheTypes.Uint128)
-  .execute();
-
-console.log(`Your salary: ${decryptedSalary} USDC`);
-```
-
-### 3. Claim Payment
-
-```typescript
-// Employee claims payment when due
-await confidPay.claimPayment();
-```
-
-### 4. Milestones
-
-```typescript
-// Admin adds milestone
-await confidPay.addMilestone(
-  employeeAddress,
-  milestoneId,
-  encryptedBonusAmount
-);
-
-// Admin completes milestone
-await confidPay.completeMilestone(employeeAddress, milestoneIndex);
-
-// Employee claims milestone payment
-await confidPay.claimMilestone(milestoneIndex);
-```
+### Employee: Claim Payment
+1. Click "Claim Payment" to create escrow
+2. Funds will be held in escrow until released
 
 ---
 
-## 🔒 Security
+## Security
 
 ### ACL (Access Control List)
 
@@ -250,134 +190,67 @@ Every encrypted variable MUST have proper ACL permissions:
 |----------|---------|
 | `FHE.allowThis(value)` | Grant contract access |
 | `FHE.allow(value, address)` | Grant specific address access |
-| `FHE.allowSender(value)` | Grant caller access |
 
 ### Critical Rules
-1. ❌ Never forget ACL on encrypted values
-2. ❌ Never use `FHE.decrypt()` (deprecated)
-3. ✅ Use `FHE.allowPublic()` + off-chain decryption for viewing
-4. ✅ Use `FHE.select()` for encrypted conditionals
-
-### Privacy Guarantees
-- Salaries are encrypted (euint128) on-chain
-- Only the employee can decrypt their own data
-- Admins see encrypted values only
-- Public blockchain sees ciphertext handles
+1. Always set `FHE.allowThis()` for contract access
+2. Always use `FHE.allow(value, employee)` for employee access
+3. Use `FHE.select()` for encrypted conditionals
+4. Never use `if (FHE.eq(...))` - use `FHE.select()` instead
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-ConfidPay-Starter/
+cofhe-hardhat-starter/
 ├── contracts/
 │   ├── ConfidPay.sol              # Main contract
-│   ├── Counter.sol                 # Example FHE contract
 │   ├── interfaces/
 │   │   └── IFHERC20.sol          # Token interface
 │   └── mock/
-│       └── MockFHERC20.sol        # Mock token
-├── test/
-│   ├── ConfidPay.test.ts          # Phase 1 & 2 tests
-│   └── Counter.test.ts            # Example tests
-├── tasks/                         # Hardhat tasks
-├── hardhat.config.ts              # Hardhat configuration
-├── package.json
-└── README.md
+│       ├── MockFHERC20.sol
+│       ├── MockConfidentEscrow.sol
+│       └── MockInsuranceManager.sol
+├── frontend/
+│   ├── app/
+│   │   ├── page.tsx              # Main dashboard
+│   │   └── providers.tsx          # Web3 providers
+│   ├── lib/
+│   │   ├── wagmi.ts              # Wallet config
+│   │   └── config.ts             # Contract addresses
+│   └── package.json
+├── scripts/
+│   └── deploy.ts                 # Deployment script
+└── test/
+    └── ConfidPay.test.ts         # 26 tests
 ```
 
 ---
 
-## 🧪 Testing
+## Resources
 
-### Local Testing
-```bash
-pnpm test
-```
-Runs against mock FHE environment (fast iteration).
-
-### Test Coverage
-- Deployment tests
-- Create payroll (all vesting types)
-- Milestone management
-- Access control
-- Error handling
-
----
-
-## 🚢 Deployment
-
-### Testnet (Arbitrum Sepolia)
-
-1. Configure `hardhat.config.ts`:
-```typescript
-networks: {
-  'arb-sepolia': {
-    url: process.env.ARB_SEPOLIA_RPC_URL,
-    accounts: [process.env.PRIVATE_KEY],
-    chainId: 421614,
-  }
-}
-```
-
-2. Deploy contracts:
-```bash
-npx hardhat deploy --network arb-sepolia
-```
-
-3. Verify on Arbiscan:
-```bash
-npx hardhat verify --network arb-sepolia <CONTRACT_ADDRESS>
-```
-
----
-
-## 🔮 Future Roadmap
-
-### Phase 3: Frontend & Integration
-- [ ] Next.js/React frontend
-- [ ] Wallet connection (MetaMask, WalletConnect)
-- [ ] Deploy to Arbitrum Sepolia
-- [ ] Integrate ReineiraOS for production payments
-
-### Phase 4: Advanced Features
-- [ ] Multi-signature admin controls
-- [ ] On-chain governance for payroll proposals
-- [ ] Cross-chain payment support
-- [ ] Real USDC integration
-
----
-
-## 📚 Resources
+### Documentation
+- [ConfidPay Docs](https://confidpay.github.io/docs)
+- [Fhenix CoFHE Docs](https://cofhe-docs.fhenix.zone/)
+- [ReineiraOS Docs](https://docs.reineira.xyz/)
 
 ### Fhenix Documentation
-- [CoFHE Docs](https://cofhe-docs.fhenix.zone/)
-- [FHE Library](https://cofhe-docs.fhenix.zone/fhe-library/introduction/overview)
-- [Client SDK](https://cofhe-docs.fhenix.zone/client-sdk/introduction/overview)
-
-### ReineiraOS
-- [Documentation](https://docs.reineira.xyz/)
-- [SDK](https://www.npmjs.com/package/@reineira-os/sdk)
+- [CoFHE Library](https://cofhe-docs.fhenix.zone/fhe-library)
+- [Client SDK](https://cofhe-docs.fhenix.zone/client-sdk)
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
-This is alpha software. Do not use in production without auditing:
-- Smart contracts handle real funds
-- FHE implementations may have vulnerabilities
-- ACL errors can permanently lock funds
-- Always test on testnet first
+This is alpha software. Always test on testnet first.
 
 ---
 
-## 📄 License
+## License
 
 MIT
 
 ---
-
-## 🙏 Credits
 
 Built with [Fhenix CoFHE](https://fhenix.io/)  
 Payment rails by [ReineiraOS](https://reineira.xyz/)
