@@ -22,13 +22,25 @@ describe('ConfidPay', function () {
 		const MockFHERC20 = await hre.ethers.getContractFactory('MockFHERC20')
 		const mockToken = await MockFHERC20.connect(admin).deploy()
 
+		// Deploy mock escrow contract (simplified for local testing)
+		const MockEscrow = await hre.ethers.getContractFactory('MockConfidentEscrow')
+		const mockEscrow = await MockEscrow.connect(admin).deploy(await mockToken.getAddress())
+
+		// Deploy mock insurance manager
+		const MockInsurance = await hre.ethers.getContractFactory('MockInsuranceManager')
+		const mockInsurance = await MockInsurance.connect(admin).deploy()
+
 		const ConfidPay = await hre.ethers.getContractFactory('ConfidPay')
-		const confidPay = await ConfidPay.connect(admin).deploy(await mockToken.getAddress())
+		const confidPay = await ConfidPay.connect(admin).deploy(
+			await mockToken.getAddress(),
+			await mockEscrow.getAddress(),
+			await mockInsurance.getAddress()
+		)
 
 		// Mint some tokens to the payroll contract for future payments
 		await mockToken.connect(admin).mint(confidPay.getAddress(), 1_000_000_000_000n) // 1M tokens
 
-		return { confidPay, mockToken, admin, employee }
+		return { confidPay, mockToken, mockEscrow, mockInsurance, admin, employee }
 	}
 
 	async function createPayroll(
@@ -75,6 +87,27 @@ describe('ConfidPay', function () {
 		it('Should set confidential token correctly', async function () {
 			const { confidPay, mockToken } = await loadFixture(deployContractsFixture)
 			expect(await confidPay.confidentialToken()).to.equal(await mockToken.getAddress())
+		})
+
+		it('Should set escrow contract correctly', async function () {
+			const { confidPay, mockEscrow } = await loadFixture(deployContractsFixture)
+			expect(await confidPay.getEscrowContract()).to.equal(await mockEscrow.getAddress())
+		})
+
+		it('Should configure insurance correctly', async function () {
+		const { confidPay, mockInsurance } = await loadFixture(deployContractsFixture)
+		
+		// Configure insurance
+		await confidPay.connect(admin).configureInsurance(
+			await mockInsurance.getAddress(),
+			'0x1234567890123456789012345678901234567890',
+			86400 * 30
+		)
+		
+		const [pool, policy, expirySeconds] = await confidPay.getInsuranceConfig()
+		expect(pool).to.equal(await mockInsurance.getAddress())
+		expect(policy).to.equal('0x1234567890123456789012345678901234567890')
+		expect(expirySeconds).to.equal(86400n * 30n)
 		})
 	})
 
@@ -363,6 +396,64 @@ describe('ConfidPay', function () {
 				confidPay,
 				'ConfidPay__InvalidEmployee'
 			)
+		})
+	})
+
+	// ================================================================================
+	// ESCROW TESTS
+	// ================================================================================
+	describe('Escrow Integration', function () {
+		it('Should create payment escrow', async function () {
+			const { confidPay } = await loadFixture(deployContractsFixture)
+
+			await createPayroll(confidPay, employee.address, MONTHLY_SALARY, 0, 0n, 0n)
+
+			const tx = await confidPay.connect(admin).createPaymentEscrow(employee.address, 100000000n)
+			const receipt = await tx.wait()
+
+			// Check for EscrowCreated event
+			const escrowCreatedEvent = receipt.logs.find((log: any) => {
+				try {
+					return log.fragment?.name === 'EscrowCreated'
+				} catch {
+					return false
+				}
+			})
+			expect(escrowCreatedEvent).to.not.be.undefined
+		})
+
+		it('Should get pending escrows for employee', async function () {
+			const { confidPay } = await loadFixture(deployContractsFixture)
+
+			await createPayroll(confidPay, employee.address, MONTHLY_SALARY, 0, 0n, 0n)
+
+			// Create an escrow
+			await confidPay.connect(admin).createPaymentEscrow(employee.address, 100000000n)
+
+			const pendingEscrows = await confidPay.connect(employee).getMyPendingEscrows()
+			expect(pendingEscrows.length).to.equal(1n)
+		})
+
+		it('Should fund escrow and attach insurance', async function () {
+			const { confidPay, mockEscrow, mockInsurance } = await loadFixture(deployContractsFixture)
+
+			// Configure insurance first
+			await confidPay.connect(admin).configureInsurance(
+				await mockInsurance.getAddress(),
+				await mockInsurance.getAddress(),
+				86400 * 30
+			)
+
+			await createPayroll(confidPay, employee.address, MONTHLY_SALARY, 0, 0n, 0n)
+
+			// Create escrow
+			const tx = await confidPay.connect(admin).createPaymentEscrow(employee.address, 100000000n)
+			const receipt = await tx.wait()
+
+			// Get escrow ID from event (simplified - in production would decode event)
+			// For now just test the function exists and doesn't revert
+			await expect(confidPay.connect(admin).fundEscrow(employee.address, 0, 100000000n))
+				.to.emit(confidPay, 'EscrowFunded')
 		})
 	})
 })

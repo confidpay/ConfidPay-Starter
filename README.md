@@ -1,170 +1,383 @@
-# Fhenix CoFHE Hardhat Starter
+# ConfidPay
 
-This project is a starter repository for developing FHE (Fully Homomorphic Encryption) smart contracts on the Fhenix network using CoFHE (Confidential Computing Framework for Homomorphic Encryption).
+**Privacy-native payroll system for DAOs and Web3 teams.**
 
-## Prerequisites
+ConfidPay lets teams pay salaries, bonuses, and contractors without revealing amounts or recipient details on the blockchain. Built on Fhenix CoFHE for confidential computations.
 
-- Node.js (v18 or later)
-- pnpm (recommended package manager)
+---
 
-## Installation
+## 🎯 What is ConfidPay?
 
-1. Clone the repository:
+ConfidPay is a smart contract system that stores encrypted salaries, vesting rules, and payment schedules on-chain. The blockchain never sees actual amounts — only the contract can compute on encrypted data.
 
-```bash
-git clone https://github.com/fhenixprotocol/cofhe-hardhat-starter.git
-cd cofhe-hardhat-starter
+### The Problem
+On public blockchains (Ethereum, Base), every transaction, salary, and recipient is visible to everyone. This is problematic for:
+- DAOs paying competitive salaries
+- Teams with privacy-sensitive compensation
+- Businesses that don't want to reveal financial details
+
+### The Solution
+ConfidPay uses **Fully Homomorphic Encryption (FHE)** to:
+- Store salaries encrypted on-chain
+- Calculate vesting without decrypting
+- Release payments based on time/conditions
+- Keep everything private by default
+
+---
+
+## 🔐 How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         ADMIN (DAO Treasury)                  │
+│  • Creates encrypted payroll for employees                    │
+│  • Sets vesting schedules (linear, cliff)                    │
+│  • Adds and completes milestones                            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ createPayroll(encryptedSalary, ...)
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    CONFIDENTIAL SMART CONTRACT               │
+│                                                              │
+│  • Stores: encryptedSalary, encryptedStartTime               │
+│  • Computes: vestedAmount, claimableAmount                 │
+│  • All math happens on encrypted data                        │
+│  • No one sees actual numbers (except employee)             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ claimPayment()
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        EMPLOYEE (Team Member)                │
+│  • Can only decrypt their own payroll info                  │
+│  • Claims payments when due                                 │
+│  • No one else knows the amounts                            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-2. Install dependencies:
+---
+
+## 📦 Features
+
+### Phase 1: Create Payroll ✅
+- Admin creates private payroll for any employee
+- Encrypted salary storage (euint128)
+- Employee can view their own encrypted payroll info
+- Access control ensures only employee can decrypt their data
+
+### Phase 2: Vesting & Milestones ✅
+- **3 Vesting Types:**
+  - **Immediate** - Full amount available from start
+  - **Linear** - Vests gradually over time
+  - **Cliff** - Nothing until cliff, then linear
+- **Time-based payments** - Employees claim when payment is due
+- **Milestones** - Bonus payments for completed tasks
+
+### Phase 3: Frontend & Testnet (Future)
+- React/Next.js frontend
+- Wallet integration (MetaMask, etc.)
+- Deploy to Arbitrum Sepolia testnet
+- Real USDC integration via ReineiraOS
+
+---
+
+## 🏗️ Architecture
+
+### Contract Structure
+
+```
+contracts/
+├── ConfidPay.sol              # Main payroll contract
+├── interfaces/
+│   └── IFHERC20.sol          # Token interface
+└── mock/
+    └── MockFHERC20.sol        # Mock for testing
+```
+
+### Core Components
+
+| Contract | Purpose |
+|----------|---------|
+| `ConfidPay.sol` | Main payroll logic, encrypted storage |
+| `IFHERC20.sol` | Interface for confidential token transfers |
+| `MockFHERC20.sol` | Mock token for local testing |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Blockchain | Fhenix (FHE Coprocessor) |
+| Smart Contracts | Solidity 0.8.25 |
+| FHE Library | `@fhenixprotocol/cofhe-contracts` |
+| SDK | `@cofhe/sdk` |
+| Testing | Hardhat + Mocha |
+| Payment Rails | ReineiraOS (future) |
+
+### FHE Type Support
+- `euint128` - Maximum for monetary values (USDC with 6 decimals)
+- `euint64` - For timestamps (covers dates until year 292277026596)
+- `InEuint128/64` - Input types for encrypted parameters
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- pnpm (or npm)
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/confidpay/ConfidPay-Starter.git
+cd ConfidPay-Starter
+
+# Install dependencies
 pnpm install
+
+# Compile contracts
+pnpm compile
 ```
 
-## Available Scripts
+### Run Tests
 
-### Development
+```bash
+# Run all tests with mock FHE environment
+pnpm test
 
-- `pnpm compile` - Compile the smart contracts
-- `pnpm clean` - Clean the project artifacts
-- `pnpm test` - Run tests on the local CoFHE network
-- `pnpm test:hardhat` - Run tests on the Hardhat network
-- `pnpm test:localcofhe` - Run tests on the local CoFHE network
+# Or with gas reporting
+REPORT_GAS=true pnpm test
+```
 
-### Local CoFHE Network
+### Expected Output
 
-- `pnpm localcofhe:start` - Start a local CoFHE network
-- `pnpm localcofhe:stop` - Stop the local CoFHE network
-- `pnpm localcofhe:faucet` - Get test tokens from the faucet
-- `pnpm localcofhe:deploy` - Deploy contracts to the local CoFHE network
+```
+✓ cofhe-hardhat-plugin :: deploy mocks
 
-### Contract Tasks
+  ConfidPay
+    Deployment
+      ✔ Should set admin correctly
+      ✔ Should set confidential token correctly
+    Create Payroll
+      ✔ Should create payroll as admin
+      ✔ Should create payroll with Linear vesting
+      ✔ Should create payroll with Cliff vesting
+      ...
+    
+  26 passing (11s)
+```
 
-- `pnpm task:deploy` - Deploy contracts
-- `pnpm task:addCount` - Add to the counter
-- `pnpm task:getCount` - Get the current count
-- `pnpm task:getFunds` - Get funds from the contract
+---
 
-## Project Structure
+## 📖 Usage
 
-- `contracts/` - Smart contract source files
-  - `Counter.sol` - Example FHE counter contract
-  - `Lock.sol` - Example time-locked contract
-- `test/` - Test files
-- `ignition/` - Hardhat Ignition deployment modules
-
-## `cofhejs` and `cofhe-hardhat-plugin`
-
-This project uses cofhejs and the CoFHE Hardhat plugin to interact with FHE (Fully Homomorphic Encryption) smart contracts. Here are the key features and utilities:
-
-### cofhejs Features
-
-- **Encryption/Decryption**: Encrypt and decrypt values using FHE
-
-  ```typescript
-  import { cofhejs, Encryptable, FheTypes } from 'cofhejs/node'
-
-  // Encrypt a value
-  const [encryptedInput] = await cofhejs.encrypt(
-  	(step) => {
-  		console.log(`Encrypt step - ${step}`)
-  	},
-  	[Encryptable.uint32(5n)]
-  )
-
-  // Decrypt a value
-  const decryptedResult = await cofhejs.decrypt(encryptedValue, FheTypes.Uint32)
-  ```
-
-- **Unsealing**: Unseal encrypted values from the blockchain
-  ```typescript
-  const unsealedResult = await cofhejs.unseal(encryptedValue, FheTypes.Uint32)
-  ```
-
-### `cofhe-hardhat-plugin` Features
-
-- **Network Configuration**: Automatically configures the cofhe enabled networks
-- **Wallet Funding**: Automatically funds wallets on the local network
-
-  ```typescript
-  import { localcofheFundWalletIfNeeded } from 'cofhe-hardhat-plugin'
-  await localcofheFundWalletIfNeeded(hre, walletAddress)
-  ```
-
-- **Signer Initialization**: Initialize cofhejs with a Hardhat signer
-
-  ```typescript
-  import { cofhejs_initializeWithHardhatSigner } from 'cofhe-hardhat-plugin'
-  await cofhejs_initializeWithHardhatSigner(signer)
-  ```
-
-- **Testing Utilities**: Helper functions for testing FHE contracts
-  ```typescript
-  import { expectResultSuccess, expectResultValue, mock_expectPlaintext, isPermittedCofheEnvironment } from 'cofhe-hardhat-plugin'
-  ```
-
-### Environment Configuration
-
-The plugin supports different environments:
-
-- `MOCK`: For testing with mocked FHE operations
-- `LOCAL`: For testing with a local CoFHE network (whitelist only)
-- `TESTNET`: For testing and tasks using `arb-sepolia` and `eth-sepolia`
-
-You can check the current environment using:
+### 1. Create Payroll (Admin)
 
 ```typescript
-if (!isPermittedCofheEnvironment(hre, 'MOCK')) {
-	// Skip test or handle accordingly
+import { Encryptable } from '@cofhe/sdk';
+
+// Encrypt salary and interval
+const [encryptedSalary] = await cofheClient
+  .encryptInputs([Encryptable.uint128(100_000_000n)]) // 100 USDC
+  .execute();
+
+const [encryptedInterval] = await cofheClient
+  .encryptInputs([Encryptable.uint64(30n * 24n * 60n * 60n)]) // 30 days
+  .execute();
+
+// Create payroll
+await confidPay.createPayroll(
+  employeeAddress,
+  encryptedSalary,
+  encryptedInterval,
+  vestingType,        // 0=Immediate, 1=Linear, 2=Cliff
+  vestingDuration,    // seconds
+  cliffDuration       // seconds
+);
+```
+
+### 2. View Payroll (Employee)
+
+```typescript
+// Get encrypted payroll info
+const payrollInfo = await confidPay.getMyPayrollInfo();
+
+// Decrypt using SDK
+const decryptedSalary = await cofheClient
+  .decryptForView(payrollInfo.salary, FheTypes.Uint128)
+  .execute();
+
+console.log(`Your salary: ${decryptedSalary} USDC`);
+```
+
+### 3. Claim Payment
+
+```typescript
+// Employee claims payment when due
+await confidPay.claimPayment();
+```
+
+### 4. Milestones
+
+```typescript
+// Admin adds milestone
+await confidPay.addMilestone(
+  employeeAddress,
+  milestoneId,
+  encryptedBonusAmount
+);
+
+// Admin completes milestone
+await confidPay.completeMilestone(employeeAddress, milestoneIndex);
+
+// Employee claims milestone payment
+await confidPay.claimMilestone(milestoneIndex);
+```
+
+---
+
+## 🔒 Security
+
+### ACL (Access Control List)
+
+Every encrypted variable MUST have proper ACL permissions:
+
+| Function | Purpose |
+|----------|---------|
+| `FHE.allowThis(value)` | Grant contract access |
+| `FHE.allow(value, address)` | Grant specific address access |
+| `FHE.allowSender(value)` | Grant caller access |
+
+### Critical Rules
+1. ❌ Never forget ACL on encrypted values
+2. ❌ Never use `FHE.decrypt()` (deprecated)
+3. ✅ Use `FHE.allowPublic()` + off-chain decryption for viewing
+4. ✅ Use `FHE.select()` for encrypted conditionals
+
+### Privacy Guarantees
+- Salaries are encrypted (euint128) on-chain
+- Only the employee can decrypt their own data
+- Admins see encrypted values only
+- Public blockchain sees ciphertext handles
+
+---
+
+## 📁 Project Structure
+
+```
+ConfidPay-Starter/
+├── contracts/
+│   ├── ConfidPay.sol              # Main contract
+│   ├── Counter.sol                 # Example FHE contract
+│   ├── interfaces/
+│   │   └── IFHERC20.sol          # Token interface
+│   └── mock/
+│       └── MockFHERC20.sol        # Mock token
+├── test/
+│   ├── ConfidPay.test.ts          # Phase 1 & 2 tests
+│   └── Counter.test.ts            # Example tests
+├── tasks/                         # Hardhat tasks
+├── hardhat.config.ts              # Hardhat configuration
+├── package.json
+└── README.md
+```
+
+---
+
+## 🧪 Testing
+
+### Local Testing
+```bash
+pnpm test
+```
+Runs against mock FHE environment (fast iteration).
+
+### Test Coverage
+- Deployment tests
+- Create payroll (all vesting types)
+- Milestone management
+- Access control
+- Error handling
+
+---
+
+## 🚢 Deployment
+
+### Testnet (Arbitrum Sepolia)
+
+1. Configure `hardhat.config.ts`:
+```typescript
+networks: {
+  'arb-sepolia': {
+    url: process.env.ARB_SEPOLIA_RPC_URL,
+    accounts: [process.env.PRIVATE_KEY],
+    chainId: 421614,
+  }
 }
 ```
 
-## Links and Additional Resources
+2. Deploy contracts:
+```bash
+npx hardhat deploy --network arb-sepolia
+```
 
-### `cofhejs`
+3. Verify on Arbiscan:
+```bash
+npx hardhat verify --network arb-sepolia <CONTRACT_ADDRESS>
+```
 
-[`cofhejs`](https://github.com/FhenixProtocol/cofhejs) is the JavaScript/TypeScript library for interacting with FHE smart contracts. It provides functions for encryption, decryption, and unsealing FHE values.
+---
 
-#### Key Features
+## 🔮 Future Roadmap
 
-- Encryption of data before sending to FHE contracts
-- Unsealing encrypted values from contracts
-- Managing permits for secure contract interactions
-- Integration with Web3 libraries (ethers.js and viem)
+### Phase 3: Frontend & Integration
+- [ ] Next.js/React frontend
+- [ ] Wallet connection (MetaMask, WalletConnect)
+- [ ] Deploy to Arbitrum Sepolia
+- [ ] Integrate ReineiraOS for production payments
 
-### `cofhe-mock-contracts`
+### Phase 4: Advanced Features
+- [ ] Multi-signature admin controls
+- [ ] On-chain governance for payroll proposals
+- [ ] Cross-chain payment support
+- [ ] Real USDC integration
 
-[`cofhe-mock-contracts`](https://github.com/FhenixProtocol/cofhe-mock-contracts) provides mock implementations of CoFHE contracts for testing FHE functionality without the actual coprocessor.
+---
 
-#### Features
+## 📚 Resources
 
-- Mock implementations of core CoFHE contracts:
-  - MockTaskManager
-  - MockQueryDecrypter
-  - MockZkVerifier
-  - ACL (Access Control List)
-- Synchronous operation simulation with mock delays
-- On-chain access to unencrypted values for testing
+### Fhenix Documentation
+- [CoFHE Docs](https://cofhe-docs.fhenix.zone/)
+- [FHE Library](https://cofhe-docs.fhenix.zone/fhe-library/introduction/overview)
+- [Client SDK](https://cofhe-docs.fhenix.zone/client-sdk/introduction/overview)
 
-#### Integration with Hardhat and cofhejs
+### ReineiraOS
+- [Documentation](https://docs.reineira.xyz/)
+- [SDK](https://www.npmjs.com/package/@reineira-os/sdk)
 
-Both `cofhejs` and `cofhe-hardhat-plugin` interact directly with the mock contracts:
+---
 
-- When imported in `hardhat.config.ts`, `cofhe-hardhat-plugin` injects necessary mock contracts into the Hardhat testnet
-- `cofhejs` automatically detects mock contracts and adjusts behavior for test environments
+## ⚠️ Disclaimer
 
-#### Mock Behavior Differences
+This is alpha software. Do not use in production without auditing:
+- Smart contracts handle real funds
+- FHE implementations may have vulnerabilities
+- ACL errors can permanently lock funds
+- Always test on testnet first
 
-- **Symbolic Execution**: In mocks, ciphertext hashes point to plaintext values stored on-chain
-- **On-chain Decryption**: Mock decryption adds simulated delays to mimic real behavior
-- **ZK Verification**: Mock verifier handles on-chain storage of encrypted inputs
-- **Off-chain Decryption**: When using `cofhejs.unseal()`, mocks return plaintext values directly from on-chain storage
+---
 
-## License
+## 📄 License
 
 MIT
 
-## Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 🙏 Credits
+
+Built with [Fhenix CoFHE](https://fhenix.io/)  
+Payment rails by [ReineiraOS](https://reineira.xyz/)
