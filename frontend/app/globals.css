@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-dark-bg: #0f172a;
+  --color-dark-card: #1e293b;
+  --color-dark-border: #334155;
+  --color-dark-text: #f8fafc;
+  --color-dark-text-secondary: #94a3b8;
+  
+  --color-light-bg: #ffffff;
+  --color-light-card: #ffffff;
+  --color-light-border: #e5e7eb;
+  --color-light-text: #111827;
+  --color-light-text-secondary: #6b7280;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  background-color: var(--color-light-bg);
+  color: var(--color-light-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html.dark {
+  background-color: var(--color-dark-bg);
+  color: var(--color-dark-text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html.dark .text-secondary {
+  color: var(--color-dark-text-secondary) !important;
+}
+
+html.dark .text-primary {
+  color: var(--color-dark-text) !important;
+}
+
+html.dark .card-bg {
+  background-color: var(--color-dark-card);
+  border-color: var(--color-dark-border);
+}
+
+html.dark .gradient-bg {
+  background: linear-gradient(to bottom right, var(--color-dark-bg), var(--color-dark-card), var(--color-dark-bg));
+}
+
+html.dark input, 
+html.dark select, 
+html.dark textarea {
+  background-color: var(--color-dark-card);
+  color: var(--color-dark-text);
+  border-color: var(--color-dark-border);
+}
+
+html.dark input::placeholder {
+  color: var(--color-dark-text-secondary);
+}
+
+html.light .text-secondary {
+  color: var(--color-light-text-secondary) !important;
+}
+
+html.light .text-primary {
+  color: var(--color-light-text) !important;
+}
+
+html.light .card-bg {
+  background-color: var(--color-light-card);
+  border-color: var(--color-light-border);
+}
+
+html.light .gradient-bg {
+  background: linear-gradient(to bottom right, #f3f4f6, #ffffff, #f3f4f6);
+}
+
+html.light input, 
+html.light select, 
+html.light textarea {
+  background-color: #f9fafb;
+  color: var(--color-light-text);
+  border-color: var(--color-light-border);
+}
+
+html.light input::placeholder {
+  color: var(--color-light-text-secondary);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
 }
