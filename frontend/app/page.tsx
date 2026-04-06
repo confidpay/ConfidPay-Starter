@@ -70,6 +70,7 @@ function Dashboard() {
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
   const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState<'admin' | 'employee'>('admin')
 
   useEffect(() => {
     setMounted(true)
@@ -119,10 +120,36 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AdminPanel isConnected={isConnected} address={address} />
-        <EmployeePanel isConnected={isConnected} address={address} />
+      <div className="mb-6">
+        <div className="flex border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab('admin')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === 'admin'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Admin Panel
+          </button>
+          <button
+            onClick={() => setActiveTab('employee')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === 'employee'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Employee Panel
+          </button>
+        </div>
       </div>
+
+      {activeTab === 'admin' ? (
+        <AdminPanel isConnected={isConnected} address={address} />
+      ) : (
+        <EmployeePanel isConnected={isConnected} address={address} />
+      )}
     </div>
   )
 }
