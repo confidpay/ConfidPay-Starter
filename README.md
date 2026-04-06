@@ -6,6 +6,33 @@ ConfidPay lets teams pay salaries, bonuses, and contractors without revealing am
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Clone & install
+git clone https://github.com/confidpay/ConfidPay-Starter.git
+cd ConfidPay-Starter/cofhe-hardhat-starter
+npm install
+
+# 2. Run tests
+npm test
+# Expected: 26 passing
+
+# 3. Run frontend
+cd frontend && npm install && npm run dev
+# Open http://localhost:3000
+```
+
+## Already Deployed (Arbitrum Sepolia)
+
+| Contract | Address |
+|----------|---------|
+| ConfidPay | `0x5f5669b3CC1B83b3aA75f598Cb345889231BB224` |
+| Escrow | `0x8573cb0699ED9Af67f31c63aE421FDEF5554F5ef` |
+| USDC | `0xeCEFF42D397469E2D052277E241383737a3eDaB1` |
+
+---
+
 ## What is ConfidPay?
 
 ConfidPay is a smart contract system that stores encrypted salaries, vesting rules, and payment schedules on-chain. The blockchain never sees actual amounts — only the contract can compute on encrypted data.
