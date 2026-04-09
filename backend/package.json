@@ -1,0 +1,23 @@
+{
+  "name": "confidpay-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@reineira-os/sdk": "^0.2.0",
+    "dotenv": "^16.0.0",
+    "ethers": "^6.9.0",
+    "cors": "^2.8.5",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.0",
+    "@types/node": "^22",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
